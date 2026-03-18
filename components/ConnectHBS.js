@@ -663,25 +663,18 @@ const PersonCard = ({ person, onClick }) => (
         <div style={{ fontWeight: 700, fontSize: 15, color: "#1a1a2e", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {person.name}
         </div>
-        <div style={{ fontSize: 12, color: "#888", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {person.company} · {person.industry}
-        </div>
+        {person.company && (
+          <div style={{ fontSize: 12, color: "#888", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            Current Company: {person.company}
+          </div>
+        )}
       </div>
     </div>
     <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
       {(person.city || person.neighborhood) && <Tag label={`📍 ${[person.city, person.neighborhood].filter(Boolean).join(" · ")}`} small />}
       {person.from && <Tag label={`🌍 ${person.from}`} small />}
+      {person.industry && <Tag label={person.industry} small />}
     </div>
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-      {(person.postMba || []).slice(0, 2).map((p) => (
-        <Tag key={p} label={p} color="crimson" small />
-      ))}
-    </div>
-    {person.funFact && (
-      <div style={{ marginTop: 10, fontSize: 12, color: "#666", fontStyle: "italic", lineHeight: 1.4 }}>
-        ✨ {person.funFact}
-      </div>
-    )}
   </div>
 );
 

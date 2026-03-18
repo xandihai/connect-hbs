@@ -284,7 +284,6 @@ const EVENT_TYPES = [
   "Brunch",
 ];
 
-
 const POST_MBA_REGIONS = [
   "United States",
   "Latin America",
@@ -590,7 +589,7 @@ const PersonCard = ({ person, onClick }) => (
       {person.from && <Tag label={`🌍 ${person.from}`} small />}
     </div>
     <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-      {person.postMba.slice(0, 2).map((p) => (
+      {(person.postMba || []).slice(0, 2).map((p) => (
         <Tag key={p} label={p} color="crimson" small />
       ))}
     </div>
@@ -819,21 +818,22 @@ const PersonModal = ({ person, onClose, onEdit, onDelete }) => {
 
 // ============ MAIN APP ============
 export default function App() {
-  const [view, setView] = useState("directory"); // "directory" | "form"
+  const [view, setView] = useState("directory");
   const [people, setPeople] = useState([]);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [search, setSearch] = useState("");
   const [filterIndustry, setFilterIndustry] = useState("");
   const [filterPostMba, setFilterPostMba] = useState("");
   const [filterCity, setFilterCity] = useState("");
-  const [filterCategory, setFilterCategory] = useState(""); // food, activities, social, learning
+  const [filterCategory, setFilterCategory] = useState("");
   const [filterInterest, setFilterInterest] = useState("");
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [submitted, setSubmitted] = useState(false);
+  const [wasEditing, setWasEditing] = useState(false);
   const [formStep, setFormStep] = useState(0);
   const [editingId, setEditingId] = useState(null);
   const [confirmDeletePerson, setConfirmDeletePerson] = useState(null);
-  const [pinPrompt, setPinPrompt] = useState(null); // { person, action: "edit" | "delete" }
+  const [pinPrompt, setPinPrompt] = useState(null);
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
 
@@ -858,12 +858,8 @@ export default function App() {
     if (!form.name.trim() || !form.pin || form.pin.length < 4) return;
     try {
       if (editingId) {
-        const person = people.find((p) => p.id === editingId);
-        const dbId = person?._dbId;
-        if (dbId) {
-          const { id, _dbId, ...formData } = form;
-          await supabase.from("profiles").update({ data: formData }).eq("id", dbId);
-        }
+        const { id, _dbId, ...formData } = form;
+        await supabase.from("profiles").update({ data: formData }).eq("id", editingId);
       } else {
         const { id, _dbId, ...formData } = form;
         await supabase.from("profiles").insert({ data: formData });
@@ -874,23 +870,23 @@ export default function App() {
       console.error("Save error", e);
     }
     setForm({ ...EMPTY_FORM });
+    setWasEditing(!!editingId);
     setEditingId(null);
     setSubmitted(true);
     setFormStep(0);
     setTimeout(() => {
       setSubmitted(false);
+      setWasEditing(false);
       setView("directory");
     }, 1800);
   };
 
-  // Pin-protected edit: show pin prompt first
   const requestEdit = (person) => {
     setPinPrompt({ person, action: "edit" });
     setPinInput("");
     setPinError(false);
   };
 
-  // Pin-protected delete: show pin prompt first
   const requestDelete = (person) => {
     setPinPrompt({ person, action: "delete" });
     setPinInput("");
@@ -908,13 +904,12 @@ export default function App() {
     setPinInput("");
     setPinError(false);
     if (action === "edit") {
-      // Merge with EMPTY_FORM to ensure all fields exist
       const copy = { ...EMPTY_FORM };
       Object.keys(person).forEach((k) => {
         copy[k] = Array.isArray(person[k]) ? [...person[k]] : person[k];
       });
       setForm(copy);
-      setEditingId(person.id || person._dbId);
+      setEditingId(person._dbId);
       setSelectedPerson(null);
       setFormStep(0);
       setView("form");
@@ -942,7 +937,6 @@ export default function App() {
 
   const updateForm = (key, val) => setForm((f) => ({ ...f, [key]: val }));
 
-  // Build interest filter options
   const interestOptions = useMemo(() => {
     if (filterCategory === "food") return FOOD_INTERESTS;
     if (filterCategory === "activities") return ACTIVITIES;
@@ -951,18 +945,16 @@ export default function App() {
     return [];
   }, [filterCategory]);
 
-  // Build city filter options from submitted data
   const usedCities = useMemo(() => {
     const cities = people.map((p) => p.city).filter(Boolean);
     return [...new Set(cities)].sort();
   }, [people]);
 
-  // Filtered people
   const filtered = useMemo(() => {
     return people.filter((p) => {
       if (search && !JSON.stringify(p).toLowerCase().includes(search.toLowerCase())) return false;
       if (filterIndustry && p.industry !== filterIndustry) return false;
-      if (filterPostMba && !p.postMba.includes(filterPostMba)) return false;
+      if (filterPostMba && !(p.postMba || []).includes(filterPostMba)) return false;
       if (filterCity && p.city !== filterCity) return false;
       if (filterInterest) {
         const all = [...(p.foodInterests || []), ...(p.activities || []), ...(p.socialCulture || []), ...(p.learning || [])];
@@ -1076,10 +1068,8 @@ export default function App() {
       </div>
 
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "20px 16px 40px" }}>
-        {/* ===== DIRECTORY VIEW ===== */}
         {view === "directory" && (
           <>
-            {/* Search & Filters */}
             <div style={{ marginBottom: 16 }}>
               <input
                 type="text"
@@ -1112,16 +1102,10 @@ export default function App() {
                     setFilterInterest("");
                   }}
                   style={{
-                    flex: 1,
-                    padding: "10px 14px",
-                    borderRadius: 10,
-                    border: "1.5px solid #e0e0e0",
-                    fontSize: 14,
-                    fontFamily: "inherit",
-                    background: "#fafafa",
-                    color: filterCategory ? "#1a1a2e" : "#999",
-                    outline: "none",
-                    cursor: "pointer",
+                    flex: 1, padding: "10px 14px", borderRadius: 10,
+                    border: "1.5px solid #e0e0e0", fontSize: 14, fontFamily: "inherit",
+                    background: "#fafafa", color: filterCategory ? "#1a1a2e" : "#999",
+                    outline: "none", cursor: "pointer",
                   }}
                 >
                   <option value="">Interest Category</option>
@@ -1135,23 +1119,15 @@ export default function App() {
                     value={filterInterest}
                     onChange={(e) => setFilterInterest(e.target.value)}
                     style={{
-                      flex: 1,
-                      padding: "10px 14px",
-                      borderRadius: 10,
-                      border: "1.5px solid #e0e0e0",
-                      fontSize: 14,
-                      fontFamily: "inherit",
-                      background: "#fafafa",
-                      color: filterInterest ? "#1a1a2e" : "#999",
-                      outline: "none",
-                      cursor: "pointer",
+                      flex: 1, padding: "10px 14px", borderRadius: 10,
+                      border: "1.5px solid #e0e0e0", fontSize: 14, fontFamily: "inherit",
+                      background: "#fafafa", color: filterInterest ? "#1a1a2e" : "#999",
+                      outline: "none", cursor: "pointer",
                     }}
                   >
                     <option value="">Select interest...</option>
                     {interestOptions.map((o) => (
-                      <option key={o} value={o}>
-                        {o}
-                      </option>
+                      <option key={o} value={o}>{o}</option>
                     ))}
                   </select>
                 )}
@@ -1160,48 +1136,19 @@ export default function App() {
 
             {activeFilters > 0 && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                <span style={{ fontSize: 13, color: "#888" }}>
-                  {filtered.length} of {people.length} people
-                </span>
-                <button
-                  onClick={clearFilters}
-                  style={{
-                    padding: "4px 12px",
-                    borderRadius: 8,
-                    border: "1px solid #ddd",
-                    background: "#fff",
-                    fontSize: 12,
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                    color: "#a31f34",
-                    fontWeight: 600,
-                  }}
-                >
+                <span style={{ fontSize: 13, color: "#888" }}>{filtered.length} of {people.length} people</span>
+                <button onClick={clearFilters} style={{ padding: "4px 12px", borderRadius: 8, border: "1px solid #ddd", background: "#fff", fontSize: 12, cursor: "pointer", fontFamily: "inherit", color: "#a31f34", fontWeight: 600 }}>
                   Clear all filters
                 </button>
               </div>
             )}
 
-            {/* People Grid */}
             {filtered.length === 0 && people.length === 0 ? (
               <div style={{ textAlign: "center", padding: "60px 20px", color: "#999" }}>
                 <div style={{ fontSize: 48, marginBottom: 16 }}>👋</div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: "#555", marginBottom: 8 }}>No one here yet</div>
                 <div style={{ fontSize: 14, marginBottom: 20 }}>Be the first to add your profile!</div>
-                <button
-                  onClick={() => setView("form")}
-                  style={{
-                    padding: "10px 24px",
-                    borderRadius: 10,
-                    border: "none",
-                    background: "#a31f34",
-                    color: "#fff",
-                    fontWeight: 700,
-                    fontSize: 14,
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                  }}
-                >
+                <button onClick={() => setView("form")} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: "#a31f34", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}>
                   Add Yourself →
                 </button>
               </div>
@@ -1210,95 +1157,42 @@ export default function App() {
                 <div style={{ fontSize: 14 }}>No matches for your filters. Try adjusting.</div>
               </div>
             ) : (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-                  gap: 12,
-                }}
-              >
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
                 {filtered.map((p) => (
-                  <PersonCard key={p.id} person={p} onClick={() => setSelectedPerson(p)} />
+                  <PersonCard key={p._dbId || p.id} person={p} onClick={() => setSelectedPerson(p)} />
                 ))}
               </div>
             )}
           </>
         )}
 
-        {/* ===== FORM VIEW ===== */}
         {view === "form" && (
           <>
             {submitted ? (
               <div style={{ textAlign: "center", padding: "60px 20px" }}>
                 <div style={{ fontSize: 56, marginBottom: 12 }}>🎉</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: "#1a1a2e" }}>{editingId ? "Profile updated!" : "You're in!"}</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: "#1a1a2e" }}>{wasEditing ? "Profile updated!" : "You're in!"}</div>
                 <div style={{ fontSize: 14, color: "#888", marginTop: 8 }}>Redirecting to directory...</div>
               </div>
             ) : (
               <div style={{ maxWidth: 560, margin: "0 auto" }}>
-                {/* Editing banner */}
                 {editingId && (
-                  <div style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "10px 16px",
-                    borderRadius: 10,
-                    background: "#a31f3410",
-                    border: "1.5px solid #a31f34",
-                    marginBottom: 16,
-                  }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "#a31f34" }}>
-                      ✏️ Editing {form.name || "profile"}
-                    </span>
-                    <button
-                      onClick={() => {
-                        setEditingId(null);
-                        setForm({ ...EMPTY_FORM });
-                        setFormStep(0);
-                        setView("directory");
-                      }}
-                      style={{
-                        padding: "4px 12px",
-                        borderRadius: 8,
-                        border: "1px solid #a31f34",
-                        background: "#fff",
-                        color: "#a31f34",
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                      }}
-                    >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", borderRadius: 10, background: "#a31f3410", border: "1.5px solid #a31f34", marginBottom: 16 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#a31f34" }}>✏️ Editing {form.name || "profile"}</span>
+                    <button onClick={() => { setEditingId(null); setForm({ ...EMPTY_FORM }); setFormStep(0); setView("directory"); }} style={{ padding: "4px 12px", borderRadius: 8, border: "1px solid #a31f34", background: "#fff", color: "#a31f34", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                       Cancel
                     </button>
                   </div>
                 )}
-                {/* Step indicators */}
                 <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 24, flexWrap: "wrap" }}>
                   {FORM_STEPS.map((s, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setFormStep(i)}
-                      style={{
-                        padding: "6px 12px",
-                        borderRadius: 20,
-                        border: formStep === i ? "1.5px solid #a31f34" : "1.5px solid #e0e0e0",
-                        background: formStep === i ? "#a31f3410" : "#fff",
-                        color: formStep === i ? "#a31f34" : "#888",
-                        fontSize: 12,
-                        fontWeight: formStep === i ? 700 : 400,
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                      }}
-                    >
+                    <button key={i} onClick={() => setFormStep(i)} style={{ padding: "6px 12px", borderRadius: 20, border: formStep === i ? "1.5px solid #a31f34" : "1.5px solid #e0e0e0", background: formStep === i ? "#a31f3410" : "#fff", color: formStep === i ? "#a31f34" : "#888", fontSize: 12, fontWeight: formStep === i ? 700 : 400, cursor: "pointer", fontFamily: "inherit" }}>
                       {s.icon} {s.title}
                     </button>
                   ))}
                 </div>
 
                 <div style={{ background: "#fff", borderRadius: 16, padding: "24px", border: "1px solid #eee" }}>
-                  {/* Step 0: About You */}
                   {formStep === 0 && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                       <div>
@@ -1306,29 +1200,8 @@ export default function App() {
                         <TextInput value={form.name} onChange={(v) => updateForm("name", v)} placeholder="Your name" />
                       </div>
                       <div>
-                        <SectionLabel>4-digit PIN * <span style={{ fontWeight: 400, textTransform: "none", fontSize: 11, color: "#999" }}>— you'll need this to edit or delete your profile later</span></SectionLabel>
-                        <input
-                          type="password"
-                          inputMode="numeric"
-                          maxLength={4}
-                          value={form.pin}
-                          onChange={(e) => updateForm("pin", e.target.value.replace(/\D/g, "").slice(0, 4))}
-                          placeholder="e.g. 1234"
-                          style={{
-                            width: "100%",
-                            padding: "10px 14px",
-                            borderRadius: 10,
-                            border: "1.5px solid #e0e0e0",
-                            fontSize: 18,
-                            fontFamily: "'DM Sans', sans-serif",
-                            background: "#fafafa",
-                            color: "#1a1a2e",
-                            outline: "none",
-                            letterSpacing: 8,
-                            textAlign: "center",
-                            boxSizing: "border-box",
-                          }}
-                        />
+                        <SectionLabel>4-digit PIN * <span style={{ fontWeight: 400, textTransform: "none", fontSize: 11, color: "#999" }}>— you need this to edit or delete your profile later</span></SectionLabel>
+                        <input type="password" inputMode="numeric" maxLength={4} value={form.pin} onChange={(e) => updateForm("pin", e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="e.g. 1234" style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid #e0e0e0", fontSize: 18, fontFamily: "'DM Sans', sans-serif", background: "#fafafa", color: "#1a1a2e", outline: "none", letterSpacing: 8, textAlign: "center", boxSizing: "border-box" }} />
                       </div>
                       <div>
                         <SectionLabel>Email</SectionLabel>
@@ -1337,7 +1210,6 @@ export default function App() {
                       <div>
                         <SectionLabel>Phone Number</SectionLabel>
                         <TextInput value={form.phone} onChange={(v) => updateForm("phone", v)} placeholder="+1 (555) 123-4567" />
-  
                       </div>
                       <div>
                         <SectionLabel>LinkedIn URL</SectionLabel>
@@ -1353,25 +1225,12 @@ export default function App() {
                       </div>
                       <div>
                         <SectionLabel>Country you live in now</SectionLabel>
-                        <SelectWithOther
-                          value={form.countryLiveIn}
-                          onChange={(v) => {
-                            updateForm("countryLiveIn", v);
-                            updateForm("city", "");
-                          }}
-                          options={COUNTRIES}
-                          placeholder="Select country"
-                        />
+                        <SelectWithOther value={form.countryLiveIn} onChange={(v) => { updateForm("countryLiveIn", v); updateForm("city", ""); }} options={COUNTRIES} placeholder="Select country" />
                       </div>
                       <div>
                         <SectionLabel>City you live in now</SectionLabel>
                         {form.countryLiveIn && form.countryLiveIn !== "Other" && CITIES_BY_COUNTRY[form.countryLiveIn] ? (
-                          <SelectWithOther
-                            value={form.city}
-                            onChange={(v) => { updateForm("city", v); updateForm("neighborhood", ""); }}
-                            options={[...CITIES_BY_COUNTRY[form.countryLiveIn], "Other"]}
-                            placeholder="Select city"
-                          />
+                          <SelectWithOther value={form.city} onChange={(v) => { updateForm("city", v); updateForm("neighborhood", ""); }} options={[...CITIES_BY_COUNTRY[form.countryLiveIn], "Other"]} placeholder="Select city" />
                         ) : (
                           <TextInput value={form.city} onChange={(v) => { updateForm("city", v); updateForm("neighborhood", ""); }} placeholder="Type your city" />
                         )}
@@ -1379,12 +1238,7 @@ export default function App() {
                       <div>
                         <SectionLabel>Neighborhood</SectionLabel>
                         {form.city && NEIGHBORHOODS_BY_CITY[form.city] ? (
-                          <SelectWithOther
-                            value={form.neighborhood}
-                            onChange={(v) => updateForm("neighborhood", v)}
-                            options={[...NEIGHBORHOODS_BY_CITY[form.city], "Other"]}
-                            placeholder="Select neighborhood"
-                          />
+                          <SelectWithOther value={form.neighborhood} onChange={(v) => updateForm("neighborhood", v)} options={[...NEIGHBORHOODS_BY_CITY[form.city], "Other"]} placeholder="Select neighborhood" />
                         ) : (
                           <TextInput value={form.neighborhood} onChange={(v) => updateForm("neighborhood", v)} placeholder="e.g. West Village, Jardins, Shoreditch" />
                         )}
@@ -1392,7 +1246,6 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Step 1: Career */}
                   {formStep === 1 && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                       <div>
@@ -1418,12 +1271,11 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Step 2: Food */}
                   {formStep === 2 && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                       <div>
                         <SectionLabel>Food & Drink Interests</SectionLabel>
-                        <p style={{ fontSize: 13, color: "#888", marginTop: 0, marginBottom: 12 }}>What's your vibe?</p>
+                        <p style={{ fontSize: 13, color: "#888", marginTop: 0, marginBottom: 12 }}>What is your vibe?</p>
                         <MultiSelect options={FOOD_INTERESTS} selected={form.foodInterests} onChange={(v) => updateForm("foodInterests", v)} accent="#ea580c" />
                       </div>
                       <div>
@@ -1433,7 +1285,6 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Step 3: Activities */}
                   {formStep === 3 && (
                     <div>
                       <SectionLabel>Activities & Sports</SectionLabel>
@@ -1442,7 +1293,6 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Step 4: Social */}
                   {formStep === 4 && (
                     <div>
                       <SectionLabel>Social & Culture</SectionLabel>
@@ -1451,7 +1301,6 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Step 5: Learning */}
                   {formStep === 5 && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                       <div>
@@ -1465,7 +1314,6 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Step 6: Fun */}
                   {formStep === 6 && (
                     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                       <div>
@@ -1483,79 +1331,23 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Navigation */}
                   <div style={{ display: "flex", justifyContent: "space-between", marginTop: 24 }}>
-                    <button
-                      onClick={() => setFormStep(Math.max(0, formStep - 1))}
-                      disabled={formStep === 0}
-                      style={{
-                        padding: "10px 20px",
-                        borderRadius: 10,
-                        border: "1.5px solid #ddd",
-                        background: "#fff",
-                        color: formStep === 0 ? "#ccc" : "#555",
-                        fontWeight: 600,
-                        fontSize: 13,
-                        cursor: formStep === 0 ? "not-allowed" : "pointer",
-                        fontFamily: "inherit",
-                      }}
-                    >
+                    <button onClick={() => setFormStep(Math.max(0, formStep - 1))} disabled={formStep === 0} style={{ padding: "10px 20px", borderRadius: 10, border: "1.5px solid #ddd", background: "#fff", color: formStep === 0 ? "#ccc" : "#555", fontWeight: 600, fontSize: 13, cursor: formStep === 0 ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
                       ← Back
                     </button>
                     {formStep < FORM_STEPS.length - 1 ? (
                       <div style={{ display: "flex", gap: 8 }}>
                         {editingId && (
-                          <button
-                            onClick={handleSubmit}
-                            disabled={!form.name.trim() || !form.pin || form.pin.length < 4}
-                            style={{
-                              padding: "10px 20px",
-                              borderRadius: 10,
-                              border: "none",
-                              background: (form.name.trim() && form.pin && form.pin.length >= 4) ? "#a31f34" : "#ccc",
-                              color: "#fff",
-                              fontWeight: 700,
-                              fontSize: 13,
-                              cursor: (form.name.trim() && form.pin && form.pin.length >= 4) ? "pointer" : "not-allowed",
-                              fontFamily: "inherit",
-                            }}
-                          >
+                          <button onClick={handleSubmit} disabled={!form.name.trim() || !form.pin || form.pin.length < 4} style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: (form.name.trim() && form.pin && form.pin.length >= 4) ? "#a31f34" : "#ccc", color: "#fff", fontWeight: 700, fontSize: 13, cursor: (form.name.trim() && form.pin && form.pin.length >= 4) ? "pointer" : "not-allowed", fontFamily: "inherit" }}>
                             Save ✓
                           </button>
                         )}
-                        <button
-                          onClick={() => setFormStep(formStep + 1)}
-                          style={{
-                            padding: "10px 20px",
-                            borderRadius: 10,
-                            border: "none",
-                            background: "#1a1a2e",
-                            color: "#fff",
-                            fontWeight: 700,
-                            fontSize: 13,
-                            cursor: "pointer",
-                            fontFamily: "inherit",
-                          }}
-                        >
+                        <button onClick={() => setFormStep(formStep + 1)} style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: "#1a1a2e", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>
                           Next →
                         </button>
                       </div>
                     ) : (
-                      <button
-                        onClick={handleSubmit}
-                        disabled={!form.name.trim() || !form.pin || form.pin.length < 4}
-                        style={{
-                          padding: "10px 24px",
-                          borderRadius: 10,
-                          border: "none",
-                          background: (form.name.trim() && form.pin && form.pin.length >= 4) ? "#a31f34" : "#ccc",
-                          color: "#fff",
-                          fontWeight: 700,
-                          fontSize: 13,
-                          cursor: (form.name.trim() && form.pin && form.pin.length >= 4) ? "pointer" : "not-allowed",
-                          fontFamily: "inherit",
-                        }}
-                      >
+                      <button onClick={handleSubmit} disabled={!form.name.trim() || !form.pin || form.pin.length < 4} style={{ padding: "10px 24px", borderRadius: 10, border: "none", background: (form.name.trim() && form.pin && form.pin.length >= 4) ? "#a31f34" : "#ccc", color: "#fff", fontWeight: 700, fontSize: 13, cursor: (form.name.trim() && form.pin && form.pin.length >= 4) ? "pointer" : "not-allowed", fontFamily: "inherit" }}>
                         {editingId ? "Save Changes ✓" : "Submit Profile 🎉"}
                       </button>
                     )}
@@ -1567,252 +1359,47 @@ export default function App() {
         )}
       </div>
 
-      {/* Modal */}
       <PersonModal person={selectedPerson} onClose={() => setSelectedPerson(null)} onEdit={requestEdit} onDelete={requestDelete} />
 
-      {/* PIN Prompt Modal */}
       {pinPrompt && (
-        <div
-          onClick={() => { setPinPrompt(null); setPinInput(""); setPinError(false); }}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            backdropFilter: "blur(4px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1100,
-            padding: 20,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "#fff",
-              borderRadius: 16,
-              padding: "28px 24px",
-              maxWidth: 340,
-              width: "100%",
-              textAlign: "center",
-            }}
-          >
+        <div onClick={() => { setPinPrompt(null); setPinInput(""); setPinError(false); }} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: "28px 24px", maxWidth: 340, width: "100%", textAlign: "center" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🔒</div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: "#1a1a2e", marginBottom: 6 }}>
-              Enter your 4-digit PIN
-            </div>
-            <div style={{ fontSize: 13, color: "#888", marginBottom: 16 }}>
-              To {pinPrompt.action} {pinPrompt.person.name}'s profile
-            </div>
-            <input
-              type="password"
-              inputMode="numeric"
-              maxLength={4}
-              value={pinInput}
-              onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(false); }}
-              onKeyDown={(e) => { if (e.key === "Enter") handlePinSubmit(); }}
-              autoFocus
-              placeholder="• • • •"
-              style={{
-                width: "100%",
-                padding: "12px",
-                borderRadius: 10,
-                border: `1.5px solid ${pinError ? "#dc2626" : "#e0e0e0"}`,
-                fontSize: 24,
-                fontFamily: "'DM Sans', sans-serif",
-                textAlign: "center",
-                letterSpacing: 12,
-                outline: "none",
-                marginBottom: pinError ? 8 : 16,
-                boxSizing: "border-box",
-              }}
-            />
-            {pinError && (
-              <div style={{ fontSize: 13, color: "#dc2626", marginBottom: 12, fontWeight: 600 }}>
-                Wrong PIN. Try again.
-              </div>
-            )}
+            <div style={{ fontSize: 17, fontWeight: 700, color: "#1a1a2e", marginBottom: 6 }}>Enter your 4-digit PIN</div>
+            <div style={{ fontSize: 13, color: "#888", marginBottom: 16 }}>To {pinPrompt.action} {pinPrompt.person.name}&apos;s profile</div>
+            <input type="password" inputMode="numeric" maxLength={4} value={pinInput} onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 4)); setPinError(false); }} onKeyDown={(e) => { if (e.key === "Enter") handlePinSubmit(); }} autoFocus placeholder="• • • •" style={{ width: "100%", padding: "12px", borderRadius: 10, border: `1.5px solid ${pinError ? "#dc2626" : "#e0e0e0"}`, fontSize: 24, fontFamily: "'DM Sans', sans-serif", textAlign: "center", letterSpacing: 12, outline: "none", marginBottom: pinError ? 8 : 16, boxSizing: "border-box" }} />
+            {pinError && <div style={{ fontSize: 13, color: "#dc2626", marginBottom: 12, fontWeight: 600 }}>Wrong PIN. Try again.</div>}
             <div style={{ display: "flex", gap: 10 }}>
-              <button
-                onClick={() => { setPinPrompt(null); setPinInput(""); setPinError(false); }}
-                style={{
-                  flex: 1,
-                  padding: "10px 16px",
-                  borderRadius: 10,
-                  border: "1.5px solid #ddd",
-                  background: "#fff",
-                  color: "#555",
-                  fontWeight: 600,
-                  fontSize: 13,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handlePinSubmit}
-                disabled={pinInput.length < 4}
-                style={{
-                  flex: 1,
-                  padding: "10px 16px",
-                  borderRadius: 10,
-                  border: "none",
-                  background: pinInput.length >= 4 ? "#a31f34" : "#ccc",
-                  color: "#fff",
-                  fontWeight: 700,
-                  fontSize: 13,
-                  cursor: pinInput.length >= 4 ? "pointer" : "not-allowed",
-                  fontFamily: "inherit",
-                }}
-              >
-                Confirm
-              </button>
+              <button onClick={() => { setPinPrompt(null); setPinInput(""); setPinError(false); }} style={{ flex: 1, padding: "10px 16px", borderRadius: 10, border: "1.5px solid #ddd", background: "#fff", color: "#555", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+              <button onClick={handlePinSubmit} disabled={pinInput.length < 4} style={{ flex: 1, padding: "10px 16px", borderRadius: 10, border: "none", background: pinInput.length >= 4 ? "#a31f34" : "#ccc", color: "#fff", fontWeight: 700, fontSize: 13, cursor: pinInput.length >= 4 ? "pointer" : "not-allowed", fontFamily: "inherit" }}>Confirm</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       {confirmDeletePerson && (
-        <div
-          onClick={() => setConfirmDeletePerson(null)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            backdropFilter: "blur(4px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1100,
-            padding: 20,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "#fff",
-              borderRadius: 16,
-              padding: "28px 24px",
-              maxWidth: 380,
-              width: "100%",
-              textAlign: "center",
-            }}
-          >
+        <div onClick={() => setConfirmDeletePerson(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, padding: "28px 24px", maxWidth: 380, width: "100%", textAlign: "center" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🗑</div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: "#1a1a2e", marginBottom: 8 }}>
-              Delete {confirmDeletePerson.name}'s profile?
-            </div>
-            <div style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>
-              This can't be undone.
-            </div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: "#1a1a2e", marginBottom: 8 }}>Delete {confirmDeletePerson.name}&apos;s profile?</div>
+            <div style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>This cannot be undone.</div>
             <div style={{ display: "flex", gap: 10 }}>
-              <button
-                onClick={() => setConfirmDeletePerson(null)}
-                style={{
-                  flex: 1,
-                  padding: "10px 16px",
-                  borderRadius: 10,
-                  border: "1.5px solid #ddd",
-                  background: "#fff",
-                  color: "#555",
-                  fontWeight: 600,
-                  fontSize: 13,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDelete}
-                style={{
-                  flex: 1,
-                  padding: "10px 16px",
-                  borderRadius: 10,
-                  border: "none",
-                  background: "#dc2626",
-                  color: "#fff",
-                  fontWeight: 700,
-                  fontSize: 13,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                Delete
-              </button>
+              <button onClick={() => setConfirmDeletePerson(null)} style={{ flex: 1, padding: "10px 16px", borderRadius: 10, border: "1.5px solid #ddd", background: "#fff", color: "#555", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+              <button onClick={confirmDelete} style={{ flex: 1, padding: "10px 16px", borderRadius: 10, border: "none", background: "#dc2626", color: "#fff", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}>Delete</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Footer */}
-      <div
-        style={{
-          borderTop: "1px solid #e8e8e8",
-          padding: "24px 20px 32px",
-          textAlign: "center",
-          background: "#f8f7f4",
-        }}
-      >
+      <div style={{ borderTop: "1px solid #e8e8e8", padding: "24px 20px 32px", textAlign: "center", background: "#f8f7f4" }}>
         <div style={{ fontSize: 13, color: "#999", marginBottom: 6 }}>
-          Built with ☕ by{" "}
-          <span style={{ fontWeight: 700, color: "#1a1a2e" }}>Alexandre Haimenis</span>
+          Built with ☕ by{" "}<span style={{ fontWeight: 700, color: "#1a1a2e" }}>Alexandre Haimenis</span>
         </div>
-        <div style={{ fontSize: 12, color: "#aaa", marginBottom: 10 }}>
-          Spotted a bug? Have a suggestion? Hit me up 👇
-        </div>
+        <div style={{ fontSize: 12, color: "#aaa", marginBottom: 10 }}>Spotted a bug? Have a suggestion? Hit me up 👇</div>
         <div style={{ display: "flex", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
-          <a
-            href="https://instagram.com/ahaimenis"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              padding: "6px 14px",
-              borderRadius: 8,
-              background: "linear-gradient(135deg, #833AB4, #E1306C, #F77737)",
-              color: "#fff",
-              fontSize: 12,
-              fontWeight: 600,
-              textDecoration: "none",
-              fontFamily: "inherit",
-            }}
-          >
-            📸 @ahaimenis
-          </a>
-          <a
-            href="https://www.linkedin.com/in/alexandre-haimenis/"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              padding: "6px 14px",
-              borderRadius: 8,
-              background: "#0A66C2",
-              color: "#fff",
-              fontSize: 12,
-              fontWeight: 600,
-              textDecoration: "none",
-              fontFamily: "inherit",
-            }}
-          >
-            💼 LinkedIn
-          </a>
-          <a
-            href="sms:+13322695367"
-            style={{
-              padding: "6px 14px",
-              borderRadius: 8,
-              background: "#333",
-              color: "#fff",
-              fontSize: 12,
-              fontWeight: 600,
-              textDecoration: "none",
-              fontFamily: "inherit",
-            }}
-          >
-            📱 +1 (332) 269-5367
-          </a>
+          <a href="https://instagram.com/ahaimenis" target="_blank" rel="noopener noreferrer" style={{ padding: "6px 14px", borderRadius: 8, background: "linear-gradient(135deg, #833AB4, #E1306C, #F77737)", color: "#fff", fontSize: 12, fontWeight: 600, textDecoration: "none", fontFamily: "inherit" }}>📸 @ahaimenis</a>
+          <a href="https://www.linkedin.com/in/alexandre-haimenis/" target="_blank" rel="noopener noreferrer" style={{ padding: "6px 14px", borderRadius: 8, background: "#0A66C2", color: "#fff", fontSize: 12, fontWeight: 600, textDecoration: "none", fontFamily: "inherit" }}>💼 LinkedIn</a>
+          <a href="sms:+13322695367" style={{ padding: "6px 14px", borderRadius: 8, background: "#333", color: "#fff", fontSize: 12, fontWeight: 600, textDecoration: "none", fontFamily: "inherit" }}>📱 +1 (332) 269-5367</a>
         </div>
       </div>
     </div>

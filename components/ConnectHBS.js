@@ -284,7 +284,6 @@ const EVENT_TYPES = [
   "Brunch",
 ];
 
-const RELATIONSHIP_STATUS = ["Single", "In a relationship", "Married"];
 
 const POST_MBA_REGIONS = [
   "United States",
@@ -307,7 +306,6 @@ const EMPTY_FORM = {
   countryLiveIn: "",
   city: "",
   neighborhood: "",
-  relationshipStatus: "",
   pin: "",
   company: "",
   previousIndustry: "",
@@ -734,7 +732,6 @@ const PersonModal = ({ person, onClose, onEdit, onDelete }) => {
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
           {(person.city || person.neighborhood) && <Tag label={`📍 ${[person.city, person.neighborhood].filter(Boolean).join(" · ")}`} />}
           {person.from && <Tag label={`🌍 From: ${person.from}`} />}
-          {person.relationshipStatus && <Tag label={`💛 ${person.relationshipStatus}`} />}
           {person.previousIndustry && <Tag label={`⏪ Prev: ${person.previousIndustry}`} />}
         </div>
 
@@ -1104,8 +1101,8 @@ export default function App() {
             </div>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
-              <SelectInput value={filterIndustry} onChange={setFilterIndustry} options={INDUSTRIES} placeholder="Industry" />
-              <SelectInput value={filterPostMba} onChange={setFilterPostMba} options={POST_MBA} placeholder="Post-MBA Goal" />
+              <SelectInput value={filterIndustry} onChange={setFilterIndustry} options={INDUSTRIES} placeholder="Pre-MBA (Current) Industry" />
+              <SelectInput value={filterPostMba} onChange={setFilterPostMba} options={POST_MBA} placeholder="Post-MBA Target Industry" />
               <SelectInput value={filterCity} onChange={setFilterCity} options={usedCities} placeholder="City" />
               <div style={{ display: "flex", gap: 8, width: "100%" }}>
                 <select
@@ -1343,7 +1340,6 @@ export default function App() {
                       </div>
                       <div>
                         <SectionLabel>Relationship Status</SectionLabel>
-                        <SelectInput value={form.relationshipStatus} onChange={(v) => updateForm("relationshipStatus", v)} options={RELATIONSHIP_STATUS} placeholder="Select status" />
                       </div>
                       <div>
                         <SectionLabel>LinkedIn URL</SectionLabel>

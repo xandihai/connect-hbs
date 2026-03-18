@@ -156,57 +156,107 @@ const NEIGHBORHOODS_BY_CITY = {
 };
 
 const INDUSTRIES = [
-  "Private Equity / VC",
-  "Investment Banking",
-  "Investment Management / Asset Management",
+  "Advertising / Marketing / Public Relations",
+  "Aerospace",
+  "Agriculture",
+  "Arts / Other Entertainment",
+  "Automotive",
+  "College Senior",
+  "Commercial Transportation / Logistics",
   "Consulting",
-  "Tech / Software",
-  "Energy / Infrastructure",
-  "Healthcare / Biotech / Pharma",
-  "Real Estate",
-  "Consumer / Retail / CPG",
-  "Media / Entertainment",
-  "Financial Services / Insurance",
-  "Aerospace / Defense",
-  "Manufacturing / Industrials",
-  "Nonprofit / Impact / NGO",
-  "Government / Policy / Public Sector",
+  "Consumer Products & Services - Other",
+  "Consumer Products - Apparel",
+  "Consumer Products - Food / Beverage",
+  "Consumer Products - Luxury",
+  "Economic / International Development",
   "Education",
-  "Legal",
-  "Startup (own)",
-  "Family Business",
-  "Military",
+  "Energy - Oil / Gas",
+  "Energy - Other",
+  "Energy - Renewable / Sustainable",
+  "Engineering Services",
+  "Film / Television / Music",
+  "Finance - Commercial / Consumer Banking",
+  "Finance - Hedge Funds",
+  "Finance - Investment Banking",
+  "Finance - Investment Management",
+  "Finance - Other",
+  "Finance - Private Equity",
+  "Finance - Venture Capital",
+  "Gaming",
+  "Government",
+  "Graduate Student",
+  "Healthcare - Biotech / Pharma",
+  "Healthcare - Medical Devices",
+  "Healthcare - Services",
+  "Hospitality / Travel",
+  "Manufacturing - Other",
+  "Military Services",
+  "Non-Profit",
+  "Professional Services",
+  "Real Estate / Construction",
+  "Retail / Wholesale / E-Commerce",
+  "Social Enterprise / Social Purpose",
+  "Sports",
+  "Tech - Consumer Electronics",
+  "Tech - Hardware",
+  "Tech - Internet Services",
+  "Tech - Other",
+  "Tech - Semiconductors",
+  "Tech - Software",
+  "Tech - Telecom",
   "Other",
 ];
 
 const POST_MBA = [
-  "Private Equity",
-  "Venture Capital",
-  "Investment Banking",
-  "Investment Management / Hedge Funds",
-  "Consulting (MBB / Strategy)",
-  "Consulting (Boutique / Specialized)",
-  "Tech — Product Management",
-  "Tech — Strategy & Operations",
-  "Tech — Engineering / AI",
-  "Tech — Big Tech (FAANG)",
-  "Tech — Growth Stage Startup",
-  "Startup — Founding my own",
-  "Startup — Joining early stage",
-  "Corporate Strategy / Corporate Development",
-  "Corporate Finance / CFO track",
-  "General Management / Leadership Program",
-  "Brand Management / Marketing (CPG)",
-  "Energy / Climate / Sustainability",
-  "Healthcare / Biotech / Pharma",
-  "Real Estate / RE Private Equity",
-  "Impact / Social Enterprise / Nonprofit",
-  "Media / Entertainment / Sports",
-  "Family Business / Family Office",
-  "Government / Policy / Public Sector",
-  "Entrepreneurship through Acquisition (ETA / Search Fund)",
-  "Education / EdTech",
-  "Not sure yet — exploring",
+  "Advertising / Marketing / Public Relations",
+  "Aerospace",
+  "Agriculture",
+  "Arts / Other Entertainment",
+  "Automotive",
+  "Commercial Transportation / Logistics",
+  "Consulting",
+  "Consumer Products & Services - Other",
+  "Consumer Products - Apparel",
+  "Consumer Products - Food / Beverage",
+  "Consumer Products - Luxury",
+  "Economic / International Development",
+  "Education",
+  "Energy - Oil / Gas",
+  "Energy - Other",
+  "Energy - Renewable / Sustainable",
+  "Engineering Services",
+  "Film / Television / Music",
+  "Finance - Commercial / Consumer Banking",
+  "Finance - Hedge Funds",
+  "Finance - Investment Banking",
+  "Finance - Investment Management",
+  "Finance - Other",
+  "Finance - Private Equity",
+  "Finance - Venture Capital",
+  "Gaming",
+  "Government",
+  "Healthcare - Biotech / Pharma",
+  "Healthcare - Medical Devices",
+  "Healthcare - Services",
+  "Hospitality / Travel",
+  "Manufacturing - Other",
+  "Military Services",
+  "Non-Profit",
+  "Professional Services",
+  "Real Estate / Construction",
+  "Retail / Wholesale / E-Commerce",
+  "Social Enterprise / Social Purpose",
+  "Sports",
+  "Startup - Founding my own",
+  "Startup - Joining early stage",
+  "Tech - Consumer Electronics",
+  "Tech - Hardware",
+  "Tech - Internet Services",
+  "Tech - Other",
+  "Tech - Semiconductors",
+  "Tech - Software",
+  "Tech - Telecom",
+  "Not sure yet",
   "Other",
 ];
 
@@ -229,10 +279,26 @@ const ACTIVITIES = [
   "Hiking / outdoors",
   "Cycling",
   "Basketball / pickup sports",
+  "Soccer / football",
+  "Volleyball",
   "Swimming",
+  "Surfing",
   "Skiing / snowboarding",
   "Martial arts / boxing",
-  "Dance (salsa, etc.)",
+  "Dance (salsa, bachata, etc.)",
+  "Rock climbing / bouldering",
+  "Rowing / crew",
+  "Sailing",
+  "Scuba diving",
+  "Horseback riding",
+  "Triathlon / Ironman",
+  "Weightlifting / powerlifting",
+  "Spin / Peloton",
+  "Soccer / futsal",
+  "Squash / racquetball",
+  "Skateboarding",
+  "Camping",
+  "Fishing",
 ];
 
 const SOCIAL_CULTURE = [
@@ -270,6 +336,24 @@ const LEARNING = [
   "Personal finance / tax strategy",
   "Wine / spirits",
   "Meditation / mindfulness",
+  "Surfing",
+  "DJing",
+  "Pottery / ceramics",
+  "Painting / drawing",
+  "Woodworking",
+  "Chess",
+  "Poker",
+  "Mixology / cocktails",
+  "Gardening / plants",
+  "Fashion / styling",
+  "Filmmaking / video editing",
+  "Podcasting",
+  "Sailing",
+  "Scuba diving",
+  "Entrepreneurship / startups",
+  "Leadership / management",
+  "Product management",
+  "Venture capital / angel investing",
 ];
 
 const EVENT_TYPES = [
@@ -817,7 +901,131 @@ const PersonModal = ({ person, onClose, onEdit, onDelete }) => {
 };
 
 // ============ MAIN APP ============
+// --- Login Screen ---
+const LoginScreen = ({ onLogin }) => {
+  const [email, setEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleLogin = async () => {
+    setError("");
+    if (!email.endsWith("@mba2028.hbs.edu")) {
+      setError("Please use your @mba2028.hbs.edu email");
+      return;
+    }
+    setSending(true);
+    try {
+      const { error: authError } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: window.location.origin + "/auth/callback",
+        },
+      });
+      if (authError) {
+        setError(authError.message);
+      } else {
+        setSent(true);
+      }
+    } catch (e) {
+      setError("Something went wrong. Try again.");
+    }
+    setSending(false);
+  };
+
+  return (
+    <div style={{ fontFamily: "'DM Sans', sans-serif", minHeight: "100vh", background: "#f8f7f4", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet" />
+      <div style={{ maxWidth: 420, width: "100%", textAlign: "center" }}>
+        <div style={{ background: "#a31f34", display: "inline-block", padding: "6px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, color: "#fff", letterSpacing: 1, textTransform: "uppercase", marginBottom: 16 }}>
+          HBS 2028
+        </div>
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 36, fontWeight: 900, color: "#1a1a2e", margin: "0 0 8px" }}>
+          Connect HBS
+        </h1>
+        <p style={{ color: "#888", fontSize: 14, marginBottom: 32 }}>
+          Find your people before campus.
+        </p>
+
+        {sent ? (
+          <div style={{ background: "#fff", borderRadius: 16, padding: "32px 24px", border: "1px solid #eee" }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>📬</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#1a1a2e", marginBottom: 8 }}>Check your email!</div>
+            <div style={{ fontSize: 14, color: "#888", lineHeight: 1.5 }}>
+              We sent a magic link to <strong style={{ color: "#1a1a2e" }}>{email}</strong>. Click the link in the email to sign in.
+            </div>
+            <button
+              onClick={() => { setSent(false); setEmail(""); }}
+              style={{ marginTop: 20, padding: "8px 16px", borderRadius: 8, border: "1px solid #ddd", background: "#fff", color: "#888", fontSize: 13, cursor: "pointer", fontFamily: "inherit" }}
+            >
+              Use a different email
+            </button>
+          </div>
+        ) : (
+          <div style={{ background: "#fff", borderRadius: 16, padding: "32px 24px", border: "1px solid #eee" }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#1a1a2e", marginBottom: 4, textAlign: "left" }}>
+              Sign in with your HBS email
+            </div>
+            <div style={{ fontSize: 12, color: "#999", marginBottom: 16, textAlign: "left" }}>
+              Only @mba2028.hbs.edu emails are accepted
+            </div>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setError(""); }}
+              onKeyDown={(e) => { if (e.key === "Enter") handleLogin(); }}
+              placeholder="yourname@mba2028.hbs.edu"
+              style={{
+                width: "100%",
+                padding: "12px 14px",
+                borderRadius: 10,
+                border: `1.5px solid ${error ? "#dc2626" : "#e0e0e0"}`,
+                fontSize: 14,
+                fontFamily: "'DM Sans', sans-serif",
+                background: "#fafafa",
+                color: "#1a1a2e",
+                outline: "none",
+                boxSizing: "border-box",
+                marginBottom: error ? 8 : 16,
+              }}
+            />
+            {error && (
+              <div style={{ fontSize: 13, color: "#dc2626", marginBottom: 12, fontWeight: 500, textAlign: "left" }}>
+                {error}
+              </div>
+            )}
+            <button
+              onClick={handleLogin}
+              disabled={sending || !email}
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: 10,
+                border: "none",
+                background: sending || !email ? "#ccc" : "#a31f34",
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: 14,
+                cursor: sending || !email ? "not-allowed" : "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              {sending ? "Sending..." : "Send Magic Link ✨"}
+            </button>
+          </div>
+        )}
+
+        <div style={{ marginTop: 24, fontSize: 12, color: "#bbb" }}>
+          No password needed — we will send you a one-time login link
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
+  const [authUser, setAuthUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [view, setView] = useState("directory");
   const [people, setPeople] = useState([]);
   const [form, setForm] = useState({ ...EMPTY_FORM });
@@ -837,8 +1045,22 @@ export default function App() {
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
 
+  // Check auth state
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setAuthUser(user);
+      setAuthLoading(false);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthUser(session?.user || null);
+      setAuthLoading(false);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
   // Load from Supabase
   useEffect(() => {
+    if (!authUser) return;
     (async () => {
       try {
         const { data, error } = await supabase
@@ -852,7 +1074,7 @@ export default function App() {
         console.log("Error loading profiles", e);
       }
     })();
-  }, []);
+  }, [authUser]);
 
   const handleSubmit = async () => {
     if (!form.name.trim() || !form.pin || form.pin.length < 4) return;
@@ -985,6 +1207,27 @@ export default function App() {
     { title: "The Fun Stuff", icon: "✨" },
   ];
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setAuthUser(null);
+  };
+
+  if (authLoading) {
+    return (
+      <div style={{ fontFamily: "'DM Sans', sans-serif", minHeight: "100vh", background: "#f8f7f4", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet" />
+        <div style={{ textAlign: "center", color: "#888" }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>🏫</div>
+          <div style={{ fontSize: 14 }}>Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authUser) {
+    return <LoginScreen />;
+  }
+
   return (
     <div
       style={{
@@ -1062,6 +1305,23 @@ export default function App() {
               }}
             >
               ➕ Add Yourself
+            </button>
+            <button
+              onClick={handleSignOut}
+              style={{
+                padding: "9px 14px",
+                borderRadius: 10,
+                border: "none",
+                background: "rgba(255,255,255,0.08)",
+                color: "rgba(255,255,255,0.5)",
+                fontWeight: 500,
+                fontSize: 12,
+                cursor: "pointer",
+                fontFamily: "inherit",
+                transition: "all .2s",
+              }}
+            >
+              Sign out
             </button>
           </div>
         </div>

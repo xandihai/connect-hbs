@@ -919,7 +919,7 @@ const LoginScreen = ({ onLogin }) => {
       const { error: authError } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: window.location.origin + "/auth/callback",
+          emailRedirectTo: window.location.origin,
         },
       });
       if (authError) {
@@ -1045,8 +1045,30 @@ export default function App() {
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
 
-  // Check auth state
+  // Check auth state and handle magic link hash fragments
   useEffect(() => {
+    // Handle hash fragment from magic link (implicit flow)
+    const hash = window.location.hash;
+    if (hash && hash.includes("access_token")) {
+      const params = new URLSearchParams(hash.substring(1));
+      const accessToken = params.get("access_token");
+      const refreshToken = params.get("refresh_token");
+      if (accessToken) {
+        supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken || "",
+        }).then(({ data: { user } }) => {
+          setAuthUser(user);
+          setAuthLoading(false);
+          // Clean up the URL
+          window.history.replaceState(null, "", window.location.pathname);
+        }).catch(() => {
+          setAuthLoading(false);
+        });
+        return;
+      }
+    }
+
     supabase.auth.getUser().then(({ data: { user } }) => {
       setAuthUser(user);
       setAuthLoading(false);

@@ -1337,9 +1337,7 @@ export default function App() {
                       <div>
                         <SectionLabel>Phone Number</SectionLabel>
                         <TextInput value={form.phone} onChange={(v) => updateForm("phone", v)} placeholder="+1 (555) 123-4567" />
-                      </div>
-                      <div>
-                        <SectionLabel>Relationship Status</SectionLabel>
+  
                       </div>
                       <div>
                         <SectionLabel>LinkedIn URL</SectionLabel>

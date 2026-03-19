@@ -1169,7 +1169,7 @@ export default function App() {
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
               <SelectInput value={filterIndustry} onChange={setFilterIndustry} options={INDUSTRIES} placeholder="Pre-MBA (Current) Industry" />
-              <SelectInput value={filterPostMba} onChange={setFilterPostMba} options={POST_MBA} placeholder="Post-MBA Target Industry" />
+              <SelectInput value={filterPostMba} onChange={setFilterPostMba} options={POST_MBA} placeholder="Post-MBA (Target) Industry" />
               <SelectInput value={filterCity} onChange={setFilterCity} options={usedCities} placeholder="City" />
               <div style={{ display: "flex", gap: 8, width: "100%" }}>
                 <select

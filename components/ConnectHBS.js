@@ -894,10 +894,7 @@ const PersonModal = ({ person, onClose, onEdit, onDelete }) => {
 };
 
 // ============ MAIN APP ============
-// --- Login Screen ---
 export default function App() {
-  const [submitted, setSubmitted] = useState(false);
-  const [wasEditing, setWasEditing] = useState(false);
   const [view, setView] = useState("directory");
   const [people, setPeople] = useState([]);
   const [form, setForm] = useState({ ...EMPTY_FORM });

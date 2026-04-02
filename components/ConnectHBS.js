@@ -66,7 +66,7 @@ const NEIGHBORHOODS_BY_CITY = {
   "San Francisco, CA": [
     "SOMA", "Mission", "Marina", "Pacific Heights", "Castro",
     "Hayes Valley", "Nob Hill", "Financial District", "Richmond",
-    "Sunset", "North Beach", "Haight-Ashbury",
+    "Sunset", "Rincon Hill" , "North Beach", "Haight-Ashbury",
   ],
   "Los Angeles, CA": [
     "Santa Monica", "Venice", "West Hollywood", "Beverly Hills",
